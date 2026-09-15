@@ -15,6 +15,11 @@ fn main() {
     );
     let target = env::var("TARGET").unwrap();
     let windows = target.contains("windows");
+    let uses_schannel = windows
+        && !cfg!(feature = "rustls")
+        && !cfg!(feature = "windows-static-ssl")
+        && cfg!(feature = "ssl");
+    let uses_spnego = cfg!(feature = "spnego") || uses_schannel;
 
     if cfg!(feature = "mesalink") {
         println!("cargo:warning=MesaLink support has been removed as of curl 7.82.0, will use default TLS backend instead.");
@@ -280,7 +285,6 @@ fn main() {
 
     if cfg!(feature = "protocol-ftp") {
         cfg.file("curl/lib/curl_fnmatch.c")
-            .file("curl/lib/ftp.c")
             .file("curl/lib/ftplistparser.c")
             .file("curl/lib/pingpong.c");
     } else {
@@ -306,9 +310,10 @@ fn main() {
     }
 
     if cfg!(feature = "spnego") {
-        cfg.define("USE_SPNEGO", None)
-            .file("curl/lib/http_negotiate.c")
-            .file("curl/lib/vauth/vauth.c");
+        cfg.define("USE_SPNEGO", None);
+    }
+    if uses_spnego {
+        cfg.file("curl/lib/http_negotiate.c");
     }
 
     // Configure TLS backend. Since Cargo does not support mutually exclusive
@@ -345,12 +350,9 @@ fn main() {
             // Please see definition of USE_SPNEGO in curl_setup.h for more info.
             cfg.define("USE_WINDOWS_SSPI", None)
                 .define("USE_SCHANNEL", None)
-                .file("curl/lib/http_negotiate.c")
                 .file("curl/lib/curl_sspi.c")
                 .file("curl/lib/socks_sspi.c")
                 .file("curl/lib/vauth/krb5_sspi.c")
-                .file("curl/lib/vauth/spnego_sspi.c")
-                .file("curl/lib/vauth/vauth.c")
                 .file("curl/lib/vtls/schannel.c")
                 .file("curl/lib/vtls/schannel_verify.c")
                 .file("curl/lib/vtls/x509asn1.c");
@@ -371,14 +373,13 @@ fn main() {
             .define("USE_THREADS_WIN32", None)
             .define("HAVE_IOCTLSOCKET_FIONBIO", None)
             .define("USE_WINSOCK", None)
-            .file("curl/lib/bufref.c")
             .file("curl/lib/system_win32.c")
             .file("curl/lib/vauth/digest_sspi.c")
             .file("curl/lib/curlx/multibyte.c")
             .file("curl/lib/curlx/version_win32.c")
             .file("curl/lib/curlx/winapi.c");
 
-        if cfg!(feature = "spnego") {
+        if uses_spnego {
             cfg.file("curl/lib/vauth/spnego_sspi.c");
         }
     } else {
