@@ -1,10 +1,10 @@
 [package]
 name = "curl"
 version = "0.4.50"
-authors = ["Alex Crichton <alex@alexcrichton.com>"]
+authors = ["Alex Crichton <alex@alexcrichton.com>", "Stephen M. Coakley <me@stephencoakley.com>"]
 license = "MIT"
-repository = "https://github.com/alexcrichton/curl-rust"
-homepage = "https://github.com/alexcrichton/curl-rust"
+repository = "https://github.com/sagebind/curl-rust"
+homepage = "https://github.com/sagebind/curl-rust"
 documentation = "https://docs.rs/curl"
 description = "Rust bindings to libcurl for making HTTP requests"
 categories = ["api-bindings", "web-programming::http-client"]
