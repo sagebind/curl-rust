@@ -12,6 +12,9 @@ categories = ["external-ffi-bindings"]
 edition = "2018"
 exclude = ["curl/docs/", "curl/tests/"]
 
+[badges.maintenance]
+status = "passively-maintained"
+
 [lib]
 name = "curl_sys"
 path = "lib.rs"

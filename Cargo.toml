@@ -12,6 +12,9 @@ readme = "README.md"
 autotests = true
 edition = "2018"
 
+[badges.maintenance]
+status = "passively-maintained"
+
 [dependencies]
 libc = "0.2.42"
 curl-sys = { path = "curl-sys", version = "0.4.89", default-features = false }

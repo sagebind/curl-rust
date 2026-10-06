@@ -6,6 +6,7 @@
 [![Documentation](https://docs.rs/curl/badge.svg)](https://docs.rs/curl)
 [![License](https://img.shields.io/github/license/sagebind/curl-rust.svg)](LICENSE)
 [![Build](https://github.com/sagebind/curl-rust/workflows/CI/badge.svg)](https://github.com/sagebind/curl-rust/actions)
+![Maintenance](https://img.shields.io/badge/maintenance-passively--maintained-brightgreen.svg)
 
 ## Quick Start
 
