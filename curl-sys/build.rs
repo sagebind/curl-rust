@@ -304,15 +304,14 @@ fn main() {
         .warnings(false);
 
     if cfg!(feature = "ntlm") {
-        cfg.file("curl/lib/curl_endian.c")
+        cfg.define("CURL_ENABLE_NTLM", None)
+            .file("curl/lib/curl_endian.c")
             .file("curl/lib/curl_gethostname.c")
             .file("curl/lib/curl_ntlm_core.c")
             .file("curl/lib/http_ntlm.c")
             .file("curl/lib/md4.c")
             .file("curl/lib/vauth/ntlm.c")
             .file("curl/lib/vauth/ntlm_sspi.c");
-    } else {
-        cfg.define("CURL_DISABLE_NTLM", None);
     }
 
     if cfg!(feature = "protocol-ftp") {
