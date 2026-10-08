@@ -8,6 +8,7 @@ license = "MIT"
 repository = "https://github.com/sagebind/curl-rust"
 description = "Native bindings to the libcurl library"
 documentation = "https://docs.rs/curl-sys"
+readme = "../README.md"
 categories = ["external-ffi-bindings"]
 edition = "2018"
 exclude = ["curl/docs/", "curl/tests/"]
