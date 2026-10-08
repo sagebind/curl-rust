@@ -25,9 +25,9 @@ socket2 = "0.6.0"
 openssl-sys = { workspace = true, optional = true }
 openssl-probe = { version = "0.1.2", optional = true }
 
-[target.'cfg(target_env = "msvc")'.dependencies]
-schannel = "0.1.13"
-windows-sys = { workspace = true, features = ["Win32_Foundation", "Win32_System_LibraryLoader", "Win32_Security_Cryptography"] }
+[target.'cfg(windows)'.dependencies]
+schannel = { version = "0.1.13", optional = true }
+windows-sys = { workspace = true, optional = true, features = ["Win32_Foundation", "Win32_System_LibraryLoader", "Win32_Security_Cryptography"] }
 
 [dev-dependencies]
 mio = "0.6"
@@ -52,7 +52,15 @@ rustls = ["curl-sys/rustls"]
 static-curl = ["curl-sys/static-curl"]
 apple-sectrust = ["ssl", "static-curl", "curl-sys/apple-sectrust"]
 static-ssl = ["curl-sys/static-ssl"]
-windows-static-ssl = ["static-curl", "curl-sys/windows-static-ssl"]
+windows-cert-store = [
+    "dep:schannel",
+    "dep:windows-sys",
+]
+windows-static-ssl = [
+    "static-curl",
+    "curl-sys/windows-static-ssl",
+    "windows-cert-store",
+]
 force-system-lib-on-osx = ['curl-sys/force-system-lib-on-osx']
 protocol-ftp = ["curl-sys/protocol-ftp"]
 zlib-ng-compat = ["curl-sys/zlib-ng-compat", "static-curl"]

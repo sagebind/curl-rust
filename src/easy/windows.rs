@@ -2,7 +2,7 @@
 
 use libc::c_void;
 
-#[cfg(target_env = "msvc")]
+#[cfg(all(windows, feature = "windows-cert-store"))]
 mod win {
     use schannel::cert_context::ValidUses;
     use schannel::cert_store::CertStore;
@@ -116,12 +116,12 @@ mod win {
     }
 }
 
-#[cfg(target_env = "msvc")]
+#[cfg(all(windows, feature = "windows-cert-store"))]
 pub fn add_certs_to_context(ssl_ctx: *mut c_void) {
     unsafe {
         win::add_certs_to_context(ssl_ctx as *mut _);
     }
 }
 
-#[cfg(not(target_env = "msvc"))]
+#[cfg(not(all(windows, feature = "windows-cert-store")))]
 pub fn add_certs_to_context(_: *mut c_void) {}
