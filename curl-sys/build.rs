@@ -360,17 +360,39 @@ fn main() {
         if windows {
             cfg.define("USE_OPENSSL", None)
                 .file("curl/lib/vtls/openssl.c");
-            // We need both openssl and zlib
-            // Those can be installed with
-            // ```shell
-            // git clone https://github.com/microsoft/vcpkg
-            // cd vcpkg
-            // ./bootstrap-vcpkg.bat -disableMetrics
-            // ./vcpkg.exe integrate install
-            // ./vcpkg.exe install openssl:x64-windows-static-md
-            // ```
-            #[cfg(target_env = "msvc")]
-            vcpkg::Config::new().find_package("openssl").ok();
+            // Probe `<TARGET>_OPENSSL_DIR` / `OPENSSL_DIR` before falling
+            // back to vcpkg. Matches openssl-sys's env-lookup convention so
+            // a single env var can point both `openssl-sys` and `curl-sys`
+            // at the same OpenSSL install.
+            if let Some(dir) = openssl_dir_from_env(&target) {
+                cfg.include(dir.join("include"));
+                println!(
+                    "cargo:rustc-link-search=native={}",
+                    dir.join("lib").display()
+                );
+                println!("cargo:rustc-link-lib=libssl");
+                println!("cargo:rustc-link-lib=libcrypto");
+            } else {
+                // vcpkg openssl fallback. Install with:
+                // ```shell
+                // git clone https://github.com/microsoft/vcpkg
+                // cd vcpkg
+                // ./bootstrap-vcpkg.bat -disableMetrics
+                // ./vcpkg.exe integrate install
+                // ./vcpkg.exe install openssl:x64-windows-static-md
+                // ```
+                // `find_package` emits `rustc-link-search` + `rustc-link-lib`
+                // for the linker, but the returned `Library`'s `include_paths`
+                // still have to be threaded into `cc-rs` explicitly.
+                #[cfg(target_env = "msvc")]
+                if let Ok(lib) = vcpkg::Config::new().find_package("openssl") {
+                    for path in &lib.include_paths {
+                        cfg.include(path);
+                    }
+                }
+            }
+            // OpenSSL static libs reference MessageBoxA (OPENSSL_showfatal).
+            println!("cargo:rustc-link-lib=user32");
             #[cfg(target_env = "msvc")]
             vcpkg::Config::new().find_package("zlib").ok();
         } else {
@@ -527,6 +549,20 @@ fn main() {
         println!("cargo:rustc-link-lib=framework=CoreServices");
         println!("cargo:rustc-link-lib=framework=SystemConfiguration");
     }
+}
+
+/// Probe `<TARGET>_OPENSSL_DIR` first, then plain `OPENSSL_DIR`, matching
+/// openssl-sys's env-lookup convention (`build/main.rs::env`). Always emits
+/// `rerun-if-env-changed` for both names so the build is invalidated when
+/// the env changes, even when neither is set at build time.
+fn openssl_dir_from_env(target: &str) -> Option<PathBuf> {
+    let prefix = target.to_uppercase().replace('-', "_");
+    let prefixed = format!("{prefix}_OPENSSL_DIR");
+    println!("cargo:rerun-if-env-changed={prefixed}");
+    println!("cargo:rerun-if-env-changed=OPENSSL_DIR");
+    env::var_os(&prefixed)
+        .or_else(|| env::var_os("OPENSSL_DIR"))
+        .map(PathBuf::from)
 }
 
 #[cfg(not(target_env = "msvc"))]

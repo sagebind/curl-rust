@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        build: [x86_64, i686, x86_64-musl, mingw, system-curl, x86_64-beta, x86_64-nightly, macos, win64, win32]
+        build: [x86_64, i686, x86_64-musl, mingw, system-curl, x86_64-beta, x86_64-nightly, macos, win64-static-ssl, win64, win32]
         include:
           - build: x86_64
             os: ubuntu-latest
@@ -67,6 +67,11 @@ jobs:
             os: windows-latest
             rust: stable
             target: x86_64-pc-windows-msvc
+          - build: win64-static-ssl
+            os: windows-latest
+            rust: stable
+            target: x86_64-pc-windows-msvc
+            static_ssl: windows
     steps:
     - uses: actions/checkout@v1
       with:
@@ -75,7 +80,29 @@ jobs:
       run: rustup update ${{ matrix.rust }} --no-self-update && rustup default ${{ matrix.rust }}
       shell: bash
     - run: rustup target add ${{ matrix.target }}
-    - run: TARGET=${{ matrix.target }} ./ci/run.sh
+    - name: Compute vcpkg cache entries
+      if: matrix.static_ssl == 'windows'
+      id: vcpkg-cache
+      shell: bash
+      run: |
+        echo "path=${{ runner.temp }}/vcpkg-cache" >> "$GITHUB_OUTPUT"
+        echo "key=vcpkg-${{ matrix.target }}-${{ hashFiles('vcpkg.json') }}-$ImageVersion" >> "$GITHUB_OUTPUT"
+    - name: Restore vcpkg binary cache (files backend)
+      if: matrix.static_ssl == 'windows'
+      uses: actions/cache@v5
+      with:
+        path: ${{ steps.vcpkg-cache.outputs.path }}
+        key: ${{ steps.vcpkg-cache.outputs.key }}
+    - name: Install vcpkg dependencies (for windows-static-ssl)
+      if: matrix.static_ssl == 'windows'
+      shell: bash
+      env:
+        VCPKG_BINARY_SOURCES: "clear;files,${{ steps.vcpkg-cache.outputs.path }},readwrite"
+      run: |
+        vcpkg install --triplet=x64-windows-static-md \
+          --x-install-root="$VCPKG_INSTALLATION_ROOT/installed"
+        echo "VCPKG_ROOT=$VCPKG_INSTALLATION_ROOT" >> "$GITHUB_ENV"
+    - run: TARGET=${{ matrix.target }} STATIC_SSL=${{ matrix.static_ssl }} ./ci/run.sh
       if: matrix.os != 'ubuntu-latest'
       name: Run non-docker tests
       shell: bash

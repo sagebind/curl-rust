@@ -16,3 +16,4 @@ ctest2 = "0.4"
 
 [features]
 static-ssl = ['curl-sys/static-ssl']
+windows-static-ssl = ['curl-sys/windows-static-ssl']

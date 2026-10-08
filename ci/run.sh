@@ -16,6 +16,16 @@ if [ "$TARGET" = "x86_64-unknown-linux-musl" ]; then
   features="--features static-ssl"
 fi
 
+# `windows-static-ssl` (curl + OpenSSL on Windows) needs vcpkg-installed
+# OpenSSL and `VCPKG_ROOT` set for vcpkg-rs's discovery.
+if [ "$STATIC_SSL" = "windows" ]; then
+  features="--features windows-static-ssl --no-default-features"
+  # Enable the Windows native CA store for the test suite so doctests that
+  # make HTTPS requests can verify server certificates. Not baked into
+  # build.rs to avoid forcing the default on library consumers.
+  export CFLAGS="-DCURL_CA_NATIVE"
+fi
+
 cargo test --target $TARGET --no-run $features
 # First test with no extra protocols enabled.
 cargo test --target $TARGET --no-run --features static-curl $features
@@ -28,7 +38,11 @@ cargo test --target $TARGET --no-run --features static-curl $features
 # Compiling on i686-windows requires nasm to be installed (other platforms
 # have pre-compiled object files), which is just slightly too much
 # inconvenience for me.
-if [ "$TARGET" != "x86_64-pc-windows-gnu" ] && [ "$TARGET" != "i686-pc-windows-msvc" ]
+#
+# Note also that rustls silently wins over windows-static-ssl in curl-sys's
+# build.rs else-if, so we skip this on the win64-static-ssl entry and keep
+# actually exercising windows-static-ssl in the tests below.
+if [ "$TARGET" != "x86_64-pc-windows-gnu" ] && [ "$TARGET" != "i686-pc-windows-msvc" ] && [ "$STATIC_SSL" != "windows" ]
 then
     cargo test --target $TARGET --no-run --features rustls,static-curl $features
 fi
