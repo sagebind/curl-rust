@@ -1,0 +1,72 @@
+name: Documentation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: read
+
+jobs:
+  build:
+    name: Build documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+      - name: Install Rust
+        run: rustup update stable && rustup default stable
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install --yes libkrb5-dev
+      - name: Build documentation
+        run: cargo doc --no-deps --all-features
+      - name: Create Pages entry point
+        run: |
+          test -f target/doc/curl/index.html
+          cat > target/doc/index.html <<'HTML'
+          <!doctype html>
+          <html lang="en">
+            <head>
+              <meta charset="utf-8">
+              <meta http-equiv="refresh" content="0; url=curl/">
+              <title>curl-rust documentation</title>
+            </head>
+            <body>
+              <p><a href="curl/">Open the curl-rust documentation</a>.</p>
+            </body>
+          </html>
+          HTML
+      - name: Configure GitHub Pages
+        if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v5
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: target/doc
+
+  deploy:
+    name: Deploy documentation
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
