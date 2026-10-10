@@ -21,6 +21,8 @@ jobs:
 
       - name: Update submodule to latest release
         id: update
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           LATEST_TAG=$(gh release view --repo curl/curl --json tagName --jq .tagName)
           cd curl-sys/curl
