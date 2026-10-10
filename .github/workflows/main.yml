@@ -19,6 +19,7 @@ jobs:
             rust: stable
             docker: linux64
             target: x86_64-unknown-linux-gnu
+            http3: '1'
           - build: ubuntu-lts
             os: ubuntu-24.04
             rust: '1.85'
@@ -59,6 +60,7 @@ jobs:
             os: macos-latest
             rust: stable
             target: aarch64-apple-darwin
+            http3: '1'
           - build: win32
             os: windows-latest
             rust: stable
@@ -67,6 +69,7 @@ jobs:
             os: windows-latest
             rust: stable
             target: x86_64-pc-windows-msvc
+            http3: '1'
     steps:
     - uses: actions/checkout@v1
       with:
@@ -75,7 +78,7 @@ jobs:
       run: rustup update ${{ matrix.rust }} --no-self-update && rustup default ${{ matrix.rust }}
       shell: bash
     - run: rustup target add ${{ matrix.target }}
-    - run: TARGET=${{ matrix.target }} ./ci/run.sh
+    - run: HTTP3_TESTS=${{ matrix.http3 }} TARGET=${{ matrix.target }} ./ci/run.sh
       if: matrix.os != 'ubuntu-latest'
       name: Run non-docker tests
       shell: bash
@@ -91,6 +94,7 @@ jobs:
           -v `pwd`/ci/.cargo:/src/.cargo:ro \
           -v `rustc --print sysroot`:/usr/local:ro \
           -e TARGET=${{ matrix.target }} \
+          -e HTTP3_TESTS=${{ matrix.http3 }} \
           -e NO_RUN=${{ matrix.no_run }} \
           -e CARGO_TARGET_DIR=/src/target \
           rust \

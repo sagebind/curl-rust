@@ -32,6 +32,11 @@ if [ "$TARGET" != "x86_64-pc-windows-gnu" ] && [ "$TARGET" != "i686-pc-windows-m
 then
     cargo test --target $TARGET --no-run --features rustls,static-curl $features
 fi
+# HTTP/3 has additional native build dependencies and a higher dependency MSRV.
+# Exercise it only in CI jobs that explicitly opt in to HTTP/3 coverage.
+if [ "$HTTP3_TESTS" = "1" ]; then
+    cargo test --target $TARGET --no-run --features http3,static-curl $features
+fi
 # Then with all extra protocols enabled.
 cargo test --target $TARGET --no-run --features static-curl,protocol-ftp,ntlm $features
 if [ -z "$NO_RUN" ]; then
@@ -39,9 +44,17 @@ if [ -z "$NO_RUN" ]; then
     cargo test --target $TARGET --features static-curl $features
     cargo test --target $TARGET --features static-curl,protocol-ftp $features
     cargo test --target $TARGET --features static-curl,http2 $features
+    if [ "$HTTP3_TESTS" = "1" ]; then
+        cargo test --target $TARGET --features static-curl,http3 $features
+    fi
 
     case "$TARGET" in
-        *-apple-*) cargo test --target $TARGET --features apple-sectrust $features ;;
+        *-apple-*)
+            cargo test --target $TARGET --features apple-sectrust $features
+            if [ "$HTTP3_TESTS" = "1" ]; then
+                cargo test --target $TARGET --features apple-sectrust,http3 $features
+            fi
+            ;;
     esac
 
     # Note that `-Clink-dead-code` is passed here to suppress `--gc-sections` to
