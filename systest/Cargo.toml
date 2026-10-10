@@ -1,7 +1,7 @@
 [package]
 name = "systest"
 version = "0.1.0"
-authors = ["Alex Crichton <alex@alexcrichton.com>"]
+authors = ["Alex Crichton <alex@alexcrichton.com>", "Stephen M. Coakley <me@stephencoakley.com>"]
 build = "build.rs"
 publish = false
 edition = "2018"
@@ -11,8 +11,8 @@ curl-sys = { path = "../curl-sys" }
 libc = "0.2"
 
 [build-dependencies]
+cc.workspace = true
 ctest2 = "0.4"
-cc = "1.0"
 
 [features]
 static-ssl = ['curl-sys/static-ssl']

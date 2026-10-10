@@ -4,8 +4,9 @@
 
 [![Latest Version](https://img.shields.io/crates/v/curl.svg)](https://crates.io/crates/curl)
 [![Documentation](https://docs.rs/curl/badge.svg)](https://docs.rs/curl)
-[![License](https://img.shields.io/github/license/alexcrichton/curl-rust.svg)](LICENSE)
-[![Build](https://github.com/alexcrichton/curl-rust/workflows/CI/badge.svg)](https://github.com/alexcrichton/curl-rust/actions)
+[![License](https://img.shields.io/github/license/sagebind/curl-rust.svg)](LICENSE)
+[![Build](https://github.com/sagebind/curl-rust/workflows/CI/badge.svg)](https://github.com/sagebind/curl-rust/actions)
+![Maintenance](https://img.shields.io/badge/maintenance-passively--maintained-brightgreen.svg)
 
 ## Quick Start
 
@@ -122,12 +123,14 @@ By default, this crate will attempt to dynamically link to the system-wide
 libcurl and the system-wide SSL library. Some of this behavior can be customized
 with various Cargo features:
 
-- `ssl`: Enable SSL/TLS support using the platform-default TLS backend. On Windows this is [Schannel], on macOS [Secure Transport], and [OpenSSL] (or equivalent) on all other platforms.  Enabled by default.
+- `ssl`: Enable SSL/TLS support using the platform-default TLS backend. On Windows this is [Schannel], on macOS [Secure Transport], and [OpenSSL] (or equivalent) on all other platforms. Enabled by default.
 - `rustls` Enable SSL/TLS support via [Rustls], a well-received alternative TLS backend written in Rust. Rustls is always statically linked. Disabled by default.
 
   Note that Rustls support is experimental within Curl itself and may have significant bugs, so we don't offer any sort of stability guarantee with this feature.
+
 - `http2`: Enable HTTP/2 support via libnghttp2. Disabled by default.
 - `static-curl`: Use a bundled libcurl version and statically link to it. Disabled by default.
+- `apple-sectrust`: Use Apple SecTrust for certificate verification with bundled libcurl and OpenSSL on Apple platforms. Implies `ssl` and `static-curl`. Disabled by default.
 - `static-ssl`: Use a bundled OpenSSL version and statically link to it. Only applies on platforms that use OpenSSL. Disabled by default.
 - `spnego`: Enable SPNEGO support. Disabled by default.
 - `upkeep_7_62_0`: Enable curl_easy_upkeep() support, introduced in curl 7.62.0. Disabled by default.
@@ -136,6 +139,7 @@ with various Cargo features:
 - `windows-static-ssl`: Enable Openssl support on Windows via the static build provided by vcpkg. Incompatible with `ssl` (use `--no-default-features`). Disabled by default.
 
   Note that to install openssl on windows via vcpkg the following commands needs to be ran:
+
   ```shell
   git clone https://github.com/microsoft/vcpkg
   cd vcpkg
@@ -167,15 +171,14 @@ against the NSS SSL library, the NSS PEM PKCS#11 module (`libnsspem.so`) needs t
 
 In order to avoid this failure you can either
 
- * install the missing library (e.g. Debian: `nss-plugin-pem`), or
- * remove the libcurl NSS development files (e.g. Debian: `libcurl4-nss-dev`) and
-   rebuild curl-rust.
+- install the missing library (e.g. Debian: `nss-plugin-pem`), or
+- remove the libcurl NSS development files (e.g. Debian: `libcurl4-nss-dev`) and
+  rebuild curl-rust.
 
 ## License
 
 The `curl-rust` crate is licensed under the MIT license, see [`LICENSE`](LICENSE) for more
 details.
-
 
 [libcurl]: https://curl.haxx.se/libcurl/
 [OpenSSL]: https://www.openssl.org/

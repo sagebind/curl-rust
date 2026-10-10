@@ -21,8 +21,12 @@ fn main() {
     };
 
     if use_openssl {
+        let apple_sectrust = env::var_os("CARGO_FEATURE_APPLE_SECTRUST").is_some()
+            && env::var("CARGO_CFG_TARGET_VENDOR").ok().as_deref() == Some("apple");
+
         // The system libcurl should have the default certificate paths configured.
-        if env::var_os("DEP_CURL_STATIC").is_some() {
+        // Apple SecTrust likewise supplies the native trust anchors itself.
+        if env::var_os("DEP_CURL_STATIC").is_some() && !apple_sectrust {
             println!("cargo:rustc-cfg=need_openssl_probe");
         }
     }
