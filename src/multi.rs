@@ -1412,3 +1412,10 @@ impl fmt::Debug for WaitFd {
             .finish()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    static_assertions::assert_not_impl_any!(Multi: Send, Sync);
+}
