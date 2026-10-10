@@ -33,6 +33,7 @@ windows-sys = { workspace = true, features = ["Win32_Foundation", "Win32_System_
 mio = "0.6"
 mio-extras = "2.0.3"
 anyhow = "1.0.31"
+static_assertions = "1.1"
 
 [workspace]
 members = ["curl-sys", "systest"]
