@@ -31,6 +31,7 @@ jobs:
       - name: Create pull request
         uses: peter-evans/create-pull-request@v7
         with:
+          token: ${{ secrets.GH_PAT }}
           branch: update-curl-to-${{ steps.update.outputs.tag }}
           commit-message: "chore: update curl to ${{ steps.update.outputs.tag }}"
           title: "Update curl to ${{ steps.update.outputs.tag }}"
