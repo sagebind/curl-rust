@@ -35,6 +35,8 @@ fn write_windows_config(dst: &Path) {
 
 fn main() {
     println!("cargo:rerun-if-changed=curl");
+    println!("cargo:rerun-if-changed=nghttp3");
+    println!("cargo:rerun-if-changed=ngtcp2");
     println!(
         "cargo:rustc-check-cfg=cfg(\
             libcurl_vendored,\
@@ -350,6 +352,10 @@ fn main() {
 
     // Configure TLS backend. Since Cargo does not support mutually exclusive
     // features, make sure we only compile one vtls.
+    if cfg!(feature = "http3") && (cfg!(feature = "rustls") || windows) {
+        // not a hard error, so that --all-features still builds
+        println!("cargo:warning=the http3 feature needs libcurl's OpenSSL backend on a unix target; ignored");
+    }
     if cfg!(feature = "rustls") {
         cfg.define("USE_RUSTLS", None)
             .file("curl/lib/vtls/cipher_suite.c")
@@ -403,6 +409,9 @@ fn main() {
             println!("cargo:rustc-cfg=link_openssl");
             if let Some(path) = env::var_os("DEP_OPENSSL_INCLUDE") {
                 cfg.include(path);
+            }
+            if cfg!(feature = "http3") {
+                http3(&mut cfg, &dst, &target);
             }
         }
     }
@@ -640,4 +649,119 @@ fn curl_config_reports_http2() -> bool {
     }
 
     true
+}
+
+/// HTTP/3 through libcurl's ngtcp2 backend on OpenSSL's QUIC API (3.5+).
+/// ngtcp2 and nghttp3 are built from the bundled sources like libcurl is,
+/// with `cc` and a generated `version.h` instead of their cmake setups.
+fn http3(curl: &mut cc::Build, dst: &Path, target: &str) {
+    let version = env::var("DEP_OPENSSL_VERSION_NUMBER")
+        .ok()
+        .and_then(|v| u64::from_str_radix(&v, 16).ok())
+        .unwrap_or(0);
+    if version < 0x3_05_00_00_0 {
+        panic!(
+            "the http3 feature needs OpenSSL 3.5 or newer for its QUIC API \
+             (found 0x{version:x}); the static-ssl feature builds one from source"
+        );
+    }
+    let openssl_include = env::var_os("DEP_OPENSSL_INCLUDE").map(PathBuf::from);
+
+    // nghttp3/version.h and ngtcp2/version.h from their cmake templates
+    let generated = dst.join("quic-include");
+    for lib in ["nghttp3", "ngtcp2"] {
+        let cmake = fs::read_to_string(format!("{lib}/CMakeLists.txt")).unwrap();
+        let version = cmake
+            .lines()
+            .find_map(|l| l.trim().strip_prefix(&format!("project({lib} VERSION ")))
+            .and_then(|l| l.split_whitespace().next())
+            .expect("project version in CMakeLists.txt");
+        let num = version
+            .split('.')
+            .map(|p| p.parse::<u32>().unwrap())
+            .fold(0, |acc, p| (acc << 8) | p);
+        let template =
+            fs::read_to_string(format!("{lib}/lib/includes/{lib}/version.h.in")).unwrap();
+        let out = generated.join(lib);
+        fs::create_dir_all(&out).unwrap();
+        fs::write(
+            out.join("version.h"),
+            template
+                .replace("@PACKAGE_VERSION@", version)
+                .replace("@PACKAGE_VERSION_NUM@", &format!("0x{num:06x}")),
+        )
+        .unwrap();
+    }
+
+    let c_files = |dir: &str| {
+        let mut files: Vec<PathBuf> = fs::read_dir(dir)
+            .unwrap()
+            .map(|e| e.unwrap().path())
+            .filter(|p| p.extension().is_some_and(|e| e == "c"))
+            .collect();
+        files.sort();
+        files
+    };
+    // what the cmake configure would have found on these platforms
+    let platform = |build: &mut cc::Build| {
+        build
+            .define("HAVE_ARPA_INET_H", None)
+            .define("HAVE_NETINET_IN_H", None)
+            .define("HAVE_UNISTD_H", None)
+            .warnings(false);
+        if target.contains("linux") || target.contains("android") {
+            build
+                .define("HAVE_ENDIAN_H", None)
+                .define("HAVE_BYTESWAP_H", None)
+                .define("HAVE_DECL_BE64TOH", "1")
+                .define("HAVE_DECL_BSWAP_64", "1");
+        } else if target.contains("bsd") {
+            build
+                .define("HAVE_SYS_ENDIAN_H", None)
+                .define("HAVE_DECL_BE64TOH", "1");
+        }
+    };
+
+    let mut nghttp3 = cc::Build::new();
+    platform(&mut nghttp3);
+    nghttp3
+        .include("nghttp3/lib/includes")
+        .include("nghttp3/lib")
+        .include(&generated)
+        .define("NGHTTP3_STATICLIB", None)
+        .files(c_files("nghttp3/lib"))
+        .file("nghttp3/lib/sfparse/sfparse.c")
+        .compile("nghttp3");
+
+    let mut ngtcp2 = cc::Build::new();
+    platform(&mut ngtcp2);
+    ngtcp2
+        .include("ngtcp2/lib/includes")
+        .include("ngtcp2/lib")
+        .include("ngtcp2/crypto/includes")
+        .include("ngtcp2/crypto")
+        .include(&generated)
+        .define("NGTCP2_STATICLIB", None)
+        .files(c_files("ngtcp2/lib"))
+        .file("ngtcp2/crypto/shared.c")
+        .file("ngtcp2/crypto/ossl/ossl.c");
+    if let Some(path) = &openssl_include {
+        ngtcp2.include(path);
+    }
+    ngtcp2.compile("ngtcp2");
+
+    curl.define("USE_NGTCP2", None)
+        .define("USE_NGHTTP3", None)
+        .define("OPENSSL_QUIC_API2", None)
+        .define("NGTCP2_STATICLIB", None)
+        .define("NGHTTP3_STATICLIB", None)
+        .define("HAVE_SENDMSG", None)
+        .define("HAVE_NETINET_UDP_H", None)
+        .include("nghttp3/lib/includes")
+        .include("ngtcp2/lib/includes")
+        .include("ngtcp2/crypto/includes")
+        .include(&generated)
+        .files(c_files("curl/lib/vquic"));
+    // no HAVE_SENDMMSG: its struct mmsghdr and IOV_MAX need _GNU_SOURCE,
+    // which this build does not set; sendmsg is the portable path
 }

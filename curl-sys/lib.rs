@@ -677,6 +677,7 @@ pub const CURL_HTTP_VERSION_2_PRIOR_KNOWLEDGE: c_int = 5;
 /// Use HTTP/3, fallback to HTTP/2 or HTTP/1 if needed.
 /// (Added in CURL 7.66.0)
 pub const CURL_HTTP_VERSION_3: c_int = 30;
+pub const CURL_HTTP_VERSION_3ONLY: c_int = 31;
 
 // Note that the type here is wrong, it's just intended to just be an enum.
 pub const CURL_SSLVERSION_DEFAULT: __enum_ty = 0;

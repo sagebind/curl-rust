@@ -1,3 +1,9 @@
 [submodule "curl-sys/curl"]
 	path = curl-sys/curl
 	url = https://github.com/curl/curl.git
+[submodule "curl-sys/nghttp3"]
+	path = curl-sys/nghttp3
+	url = https://github.com/ngtcp2/nghttp3
+[submodule "curl-sys/ngtcp2"]
+	path = curl-sys/ngtcp2
+	url = https://github.com/ngtcp2/ngtcp2

@@ -1,7 +1,8 @@
-# This workflow automates some of the process of updating curl-sys to the latest
-# version of curl upstream.
+# This workflow automates some of the process of updating the bundled
+# libraries (curl, and ngtcp2 and nghttp3 for the http3 feature) to their
+# latest upstream releases. One pull request per library.
 
-name: Update curl
+name: Update bundled libraries
 
 on:
   schedule:
@@ -14,6 +15,22 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: curl
+            repo: curl/curl
+            path: curl-sys/curl
+            changelog: https://curl.se/ch/TAG.html
+          - name: ngtcp2
+            repo: ngtcp2/ngtcp2
+            path: curl-sys/ngtcp2
+            changelog: https://github.com/ngtcp2/ngtcp2/releases/tag/TAG
+          - name: nghttp3
+            repo: ngtcp2/nghttp3
+            path: curl-sys/nghttp3
+            changelog: https://github.com/ngtcp2/nghttp3/releases/tag/TAG
     steps:
       - uses: actions/checkout@v7
         with:
@@ -24,25 +41,27 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
-          LATEST_TAG=$(gh release view --repo curl/curl --json tagName --jq .tagName)
-          cd curl-sys/curl
+          LATEST_TAG=$(gh release view --repo ${{ matrix.repo }} --json tagName --jq .tagName)
+          cd ${{ matrix.path }}
           git fetch --tags
           git checkout $LATEST_TAG
           echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+          echo "changelog=${{ matrix.changelog }}" | sed "s/TAG/$LATEST_TAG/" >> $GITHUB_OUTPUT
 
       - name: Create pull request
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GH_PAT }}
-          branch: update-curl-to-${{ steps.update.outputs.tag }}
-          commit-message: "chore: update curl to ${{ steps.update.outputs.tag }}"
-          title: "Update curl to ${{ steps.update.outputs.tag }}"
+          branch: update-${{ matrix.name }}-to-${{ steps.update.outputs.tag }}
+          commit-message: "chore: update ${{ matrix.name }} to ${{ steps.update.outputs.tag }}"
+          title: "Update ${{ matrix.name }} to ${{ steps.update.outputs.tag }}"
           body: |
-            Update the bundled curl submodule to version ${{ steps.update.outputs.tag }}.
+            Update the bundled ${{ matrix.name }} submodule to version ${{ steps.update.outputs.tag }}.
 
-            Changelog: <https://curl.se/ch/${{ steps.update.outputs.tag }}.html>
+            Changelog: <${{ steps.update.outputs.changelog }}>
 
             This PR was created in an automated fashion. Additional changes may
-            be required to get the new version of curl to work with our
+            be required to get the new version of ${{ matrix.name }} to work with our
             `build.rs` script.
+          # one label for all bundled libraries; it already exists in the repo
           labels: curl-update

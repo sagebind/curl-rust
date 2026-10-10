@@ -98,6 +98,18 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       name: Run docker tests
 
+  http3:
+    name: HTTP/3 (ngtcp2 on OpenSSL)
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Install Rust
+      run: rustup update stable && rustup default stable
+    - run: cargo test --no-run --features http3,static-ssl
+    - run: cargo run --example http3 --features http3,static-ssl
+
   rustfmt:
     name: Rustfmt
     runs-on: ubuntu-latest

@@ -462,6 +462,10 @@ pub enum HttpVersion {
     ///
     /// (Added in CURL 7.66.0)
     V3 = curl_sys::CURL_HTTP_VERSION_3 as isize,
+
+    /// Use HTTP/3 and fail if that is not possible, no fallback to earlier
+    /// versions. (Added in CURL 7.88.0)
+    V3Only = curl_sys::CURL_HTTP_VERSION_3ONLY as isize,
 }
 
 /// Possible values to pass to the `ssl_version` and `ssl_min_max_version` method.

@@ -11,7 +11,19 @@ documentation = "https://docs.rs/curl-sys"
 readme = "../README.md"
 categories = ["external-ffi-bindings"]
 edition = "2018"
-exclude = ["curl/docs/", "curl/tests/"]
+exclude = [
+    "curl/docs/",
+    "curl/tests/",
+    "nghttp3/doc/",
+    "nghttp3/examples/",
+    "nghttp3/fuzz/",
+    "nghttp3/tests/",
+    "ngtcp2/doc/",
+    "ngtcp2/examples/",
+    "ngtcp2/fuzz/",
+    "ngtcp2/tests/",
+    "ngtcp2/third-party/",
+]
 
 [badges.maintenance]
 status = "passively-maintained"
@@ -47,6 +59,7 @@ pkg-config = "0.3.3"
 default = ["ssl"]
 ssl = ["openssl-sys"]
 http2 = ["libnghttp2-sys"]
+http3 = ["ssl", "static-curl"]
 mesalink = []
 rustls = ["rustls-ffi"]
 static-curl = []
