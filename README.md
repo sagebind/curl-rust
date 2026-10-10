@@ -128,6 +128,8 @@ with various Cargo features:
 
   Note that Rustls support is experimental within Curl itself and may have significant bugs, so we don't offer any sort of stability guarantee with this feature.
 
+- `rustls-ring`: Like `rustls`, but with [ring] as the crypto provider instead of aws-lc-rs. ring needs no cmake at build time and no CPU jitter entropy seeding at startup, which makes it the better fit for cross-compiled and short-lived programs. Disabled by default.
+
 - `http2`: Enable HTTP/2 support via libnghttp2. Disabled by default.
 - `static-curl`: Use a bundled libcurl version and statically link to it. Disabled by default.
 - `apple-sectrust`: Use Apple SecTrust for certificate verification with bundled libcurl and OpenSSL on Apple platforms. Implies `ssl` and `static-curl`. Disabled by default.
@@ -183,5 +185,6 @@ details.
 [libcurl]: https://curl.haxx.se/libcurl/
 [OpenSSL]: https://www.openssl.org/
 [Rustls]: https://github.com/ctz/rustls
+[ring]: https://github.com/briansmith/ring
 [Schannel]: https://docs.microsoft.com/en-us/windows/win32/com/schannel
 [Secure Transport]: https://developer.apple.com/documentation/security/secure_transport

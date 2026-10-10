@@ -20,7 +20,14 @@ fn main() {
         Err(_) => false,
     };
 
-    if use_openssl {
+    // libcurl's rustls backend loads its roots from CURLOPT_CAINFO / CAPATH as
+    // well (it only uses the platform verifier when CURLSSLOPT_NATIVE_CA is
+    // set), so a static build on rustls needs the probe as much as one on
+    // OpenSSL.
+    let use_rustls = env::var_os("CARGO_FEATURE_RUSTLS").is_some()
+        || env::var_os("CARGO_FEATURE_RUSTLS_RING").is_some();
+
+    if use_openssl || use_rustls {
         let apple_sectrust = env::var_os("CARGO_FEATURE_APPLE_SECTRUST").is_some()
             && env::var("CARGO_CFG_TARGET_VENDOR").ok().as_deref() == Some("apple");
 

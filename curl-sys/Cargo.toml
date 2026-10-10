@@ -29,6 +29,7 @@ libnghttp2-sys = { optional = true, version = "0.1.3" }
 version = "0.15"
 optional = true
 features = ["no_log_capture"]
+default-features = false
 
 [target.'cfg(all(unix))'.dependencies]
 openssl-sys = { workspace = true, optional = true }
@@ -48,7 +49,8 @@ default = ["ssl"]
 ssl = ["openssl-sys"]
 http2 = ["libnghttp2-sys"]
 mesalink = []
-rustls = ["rustls-ffi"]
+rustls = ["rustls-ffi", "rustls-ffi/aws-lc-rs", "rustls-ffi/prefer-post-quantum"]
+rustls-ring = ["rustls-ffi", "rustls-ffi/ring"]
 static-curl = []
 apple-sectrust = ["ssl", "static-curl"]
 windows-static-ssl = []

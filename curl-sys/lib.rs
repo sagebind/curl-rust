@@ -8,7 +8,7 @@ extern crate libnghttp2_sys;
 extern crate libz_sys;
 #[cfg(link_openssl)]
 extern crate openssl_sys;
-#[cfg(feature = "rustls")]
+#[cfg(any(feature = "rustls", feature = "rustls-ring"))]
 extern crate rustls_ffi;
 
 use libc::c_ulong;

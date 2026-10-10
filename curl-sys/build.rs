@@ -350,7 +350,7 @@ fn main() {
 
     // Configure TLS backend. Since Cargo does not support mutually exclusive
     // features, make sure we only compile one vtls.
-    if cfg!(feature = "rustls") {
+    if cfg!(any(feature = "rustls", feature = "rustls-ring")) {
         cfg.define("USE_RUSTLS", None)
             .file("curl/lib/vtls/cipher_suite.c")
             .file("curl/lib/vtls/rustls.c")
