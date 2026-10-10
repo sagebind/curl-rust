@@ -311,9 +311,15 @@ pub const CURLAUTH_NTLM: c_ulong = 1 << 3;
 pub const CURLAUTH_DIGEST_IE: c_ulong = 1 << 4;
 pub const CURLAUTH_NTLM_WB: c_ulong = 1 << 5;
 pub const CURLAUTH_AWS_SIGV4: c_ulong = 1 << 7;
+pub const CURLAUTH_HTTPSIG: c_ulong = 1 << 8;
 // pub const CURLAUTH_ONLY: c_ulong = 1 << 31;
-pub const CURLAUTH_ANY: c_ulong = (!CURLAUTH_DIGEST_IE) & 0xffffffff;
-pub const CURLAUTH_ANYSAFE: c_ulong = (!(CURLAUTH_BASIC | CURLAUTH_DIGEST_IE)) & 0xffffffff;
+pub const CURLAUTH_ANY: c_ulong = (!(CURLAUTH_DIGEST_IE | CURLAUTH_HTTPSIG)) & 0xffffffff;
+pub const CURLAUTH_ANYSAFE: c_ulong =
+    (!(CURLAUTH_BASIC | CURLAUTH_DIGEST_IE | CURLAUTH_HTTPSIG)) & 0xffffffff;
+
+pub const CURLHTTPSIG_NONE: c_long = 0;
+pub const CURLHTTPSIG_ED25519: c_long = 1;
+pub const CURLHTTPSIG_HMAC_SHA256: c_long = 2;
 
 // pub const CURLSSH_AUTH_ANY: c_ulong = !0;
 // pub const CURLSSH_AUTH_NONE: c_ulong = 0;
@@ -633,6 +639,11 @@ pub const CURLOPT_DOH_SSL_VERIFYHOST: CURLoption = CURLOPTTYPE_LONG + 307;
 pub const CURLOPT_DOH_SSL_VERIFYSTATUS: CURLoption = CURLOPTTYPE_LONG + 308;
 pub const CURLOPT_CAINFO_BLOB: CURLoption = CURLOPTTYPE_BLOB + 309;
 pub const CURLOPT_PROXY_CAINFO_BLOB: CURLoption = CURLOPTTYPE_BLOB + 310;
+
+pub const CURLOPT_HTTPSIG_ALGORITHM: CURLoption = CURLOPTTYPE_VALUES + 329;
+pub const CURLOPT_HTTPSIG_KEY: CURLoption = CURLOPTTYPE_OBJECTPOINT + 330;
+pub const CURLOPT_HTTPSIG_KEYID: CURLoption = CURLOPTTYPE_OBJECTPOINT + 331;
+pub const CURLOPT_HTTPSIG_HEADERS: CURLoption = CURLOPTTYPE_OBJECTPOINT + 332;
 
 pub const CURL_IPRESOLVE_WHATEVER: c_int = 0;
 pub const CURL_IPRESOLVE_V4: c_int = 1;

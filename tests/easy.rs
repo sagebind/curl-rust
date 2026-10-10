@@ -995,7 +995,7 @@ fn test_connect_timeout() {
     assert_eq!(
         Error::new(curl_sys::CURLE_BAD_FUNCTION_ARGUMENT),
         easy2
-            .connect_timeout(Duration::from_secs(std::u64::MAX))
+            .connect_timeout(Duration::from_secs(u64::MAX))
             .unwrap_err()
     );
 
@@ -1024,9 +1024,7 @@ fn test_timeout() {
     // Overflow value test must return an Error
     assert_eq!(
         Error::new(curl_sys::CURLE_BAD_FUNCTION_ARGUMENT),
-        easy2
-            .timeout(Duration::from_secs(std::u64::MAX))
-            .unwrap_err()
+        easy2.timeout(Duration::from_secs(u64::MAX)).unwrap_err()
     );
 
     // Valid value

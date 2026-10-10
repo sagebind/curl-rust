@@ -3,6 +3,36 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+// curl 8.22 limits config-win32.h to old Visual Studio project builds.
+// curl-sys builds libcurl directly with cc, so reuse the platform settings
+// as curl_config.h without the build-system guard.
+fn write_windows_config(dst: &Path) {
+    let config = fs::read_to_string("curl/lib/config-win32.h").unwrap();
+    let mut lines = config.lines();
+    let mut output = String::new();
+    let mut removed_version_guard = false;
+
+    while let Some(line) = lines.next() {
+        if line == "#if !defined(_MSC_VER) || _MSC_VER > 1800" {
+            assert_eq!(
+                lines.next(),
+                Some(
+                    "#error This manual configuration requires MSVC 2010-2013 (IDE Project builds)"
+                )
+            );
+            assert_eq!(lines.next(), Some("#endif"));
+            removed_version_guard = true;
+            continue;
+        }
+
+        output.push_str(line);
+        output.push('\n');
+    }
+
+    assert!(removed_version_guard);
+    fs::write(dst.join("curl_config.h"), output).unwrap();
+}
+
 fn main() {
     println!("cargo:rerun-if-changed=curl");
     println!(
@@ -54,6 +84,9 @@ fn main() {
     let dst = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     let include = dst.join("include");
     let build = dst.join("build");
+    if windows {
+        write_windows_config(&dst);
+    }
     println!("cargo:root={}", dst.display());
     println!("cargo:include={}", include.display());
     println!("cargo:static=1");
@@ -97,7 +130,7 @@ fn main() {
             .replace("@LIBCURL_LIBS@", "")
             .replace("@SUPPORT_FEATURES@", "")
             .replace("@SUPPORT_PROTOCOLS@", "")
-            .replace("@CURLVERSION@", "8.21.0"),
+            .replace("@CURLVERSION@", "8.22.0"),
     )
     .unwrap();
 
@@ -130,11 +163,9 @@ fn main() {
         .define("HAVE_STDINT_H", None)
         .define("USE_RESOLV_THREADED", None)
         .file("curl/lib/altsvc.c")
-        .file("curl/lib/asyn-base.c")
-        .file("curl/lib/asyn-thrdd.c")
+        .file("curl/lib/api.c")
         .file("curl/lib/bufq.c")
         .file("curl/lib/bufref.c")
-        .file("curl/lib/cf-dns.c")
         .file("curl/lib/cf-h1-proxy.c")
         .file("curl/lib/cf-haproxy.c")
         .file("curl/lib/cf-https-connect.c")
@@ -150,6 +181,7 @@ fn main() {
         .file("curl/lib/creds.c")
         .file("curl/lib/cshutdn.c")
         .file("curl/lib/curl_addrinfo.c")
+        .file("curl/lib/curl_ed25519.c")
         .file("curl/lib/curl_fopen.c")
         .file("curl/lib/curl_get_line.c")
         .file("curl/lib/curl_memrchr.c")
@@ -177,8 +209,6 @@ fn main() {
         .file("curl/lib/cw-out.c")
         .file("curl/lib/cw-pause.c")
         .file("curl/lib/dict.c")
-        .file("curl/lib/dnscache.c")
-        .file("curl/lib/doh.c")
         .file("curl/lib/dynhds.c")
         .file("curl/lib/easy.c")
         .file("curl/lib/escape.c")
@@ -192,14 +222,13 @@ fn main() {
         .file("curl/lib/hash.c")
         .file("curl/lib/headers.c")
         .file("curl/lib/hmac.c")
-        .file("curl/lib/hostip.c")
-        .file("curl/lib/hostip6.c")
         .file("curl/lib/hsts.c")
         .file("curl/lib/http.c")
         .file("curl/lib/http1.c")
         .file("curl/lib/http_aws_sigv4.c")
         .file("curl/lib/http_chunks.c")
         .file("curl/lib/http_digest.c")
+        .file("curl/lib/http_httpsig.c")
         .file("curl/lib/http_proxy.c")
         .file("curl/lib/idn.c")
         .file("curl/lib/if2ip.c")
@@ -245,12 +274,20 @@ fn main() {
         .file("curl/lib/transfer.c")
         .file("curl/lib/uint-bset.c")
         .file("curl/lib/uint-hash.c")
+        .file("curl/lib/uint-hashset.c")
         .file("curl/lib/uint-spbset.c")
         .file("curl/lib/uint-table.c")
         .file("curl/lib/url.c")
         .file("curl/lib/urlapi.c")
         .file("curl/lib/vauth/digest.c")
         .file("curl/lib/vauth/vauth.c")
+        .file("curl/lib/vdns/asyn-base.c")
+        .file("curl/lib/vdns/asyn-thrdd.c")
+        .file("curl/lib/vdns/cf-dns.c")
+        .file("curl/lib/vdns/dnscache.c")
+        .file("curl/lib/vdns/doh.c")
+        .file("curl/lib/vdns/hostip.c")
+        .file("curl/lib/vdns/hostip6.c")
         .file("curl/lib/version.c")
         .file("curl/lib/vquic/vquic-tls.c")
         .file("curl/lib/vquic/vquic.c")
@@ -358,6 +395,11 @@ fn main() {
             cfg.define("USE_OPENSSL", None)
                 .file("curl/lib/vtls/openssl.c");
 
+            if target.contains("-apple-") && cfg!(feature = "apple-sectrust") {
+                cfg.define("USE_APPLE_SECTRUST", None)
+                    .file("curl/lib/vtls/apple.c");
+            }
+
             println!("cargo:rustc-cfg=link_openssl");
             if let Some(path) = env::var_os("DEP_OPENSSL_INCLUDE") {
                 cfg.include(path);
@@ -367,7 +409,9 @@ fn main() {
 
     // Configure platform-specific details.
     if windows {
-        cfg.define("WIN32", None)
+        cfg.define("HAVE_CONFIG_H", None)
+            .include(&dst)
+            .define("WIN32", None)
             .define("USE_THREADS_WIN32", None)
             .define("HAVE_IOCTLSOCKET_FIONBIO", None)
             .define("USE_WINSOCK", None)

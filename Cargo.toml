@@ -1,16 +1,19 @@
 [package]
 name = "curl"
-version = "0.4.50"
-authors = ["Alex Crichton <alex@alexcrichton.com>"]
+version = "0.4.51"
+authors = ["Alex Crichton <alex@alexcrichton.com>", "Stephen M. Coakley <me@stephencoakley.com>"]
 license = "MIT"
-repository = "https://github.com/alexcrichton/curl-rust"
-homepage = "https://github.com/alexcrichton/curl-rust"
+repository = "https://github.com/sagebind/curl-rust"
+homepage = "https://github.com/sagebind/curl-rust"
 documentation = "https://docs.rs/curl"
 description = "Rust bindings to libcurl for making HTTP requests"
 categories = ["api-bindings", "web-programming::http-client"]
 readme = "README.md"
 autotests = true
 edition = "2018"
+
+[badges.maintenance]
+status = "passively-maintained"
 
 [dependencies]
 libc = "0.2.42"
@@ -30,6 +33,7 @@ windows-sys = { workspace = true, features = ["Win32_Foundation", "Win32_System_
 mio = "0.6"
 mio-extras = "2.0.3"
 anyhow = "1.0.31"
+static_assertions = "1.1"
 
 [workspace]
 members = ["curl-sys", "systest"]
@@ -47,6 +51,7 @@ http2 = ["curl-sys/http2"]
 spnego = ["curl-sys/spnego"]
 rustls = ["curl-sys/rustls"]
 static-curl = ["curl-sys/static-curl"]
+apple-sectrust = ["ssl", "static-curl", "curl-sys/apple-sectrust"]
 static-ssl = ["curl-sys/static-ssl"]
 windows-static-ssl = ["static-curl", "curl-sys/windows-static-ssl"]
 force-system-lib-on-osx = ['curl-sys/force-system-lib-on-osx']
