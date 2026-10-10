@@ -1,0 +1,46 @@
+# This workflow automates some of the process of updating curl-sys to the latest
+# version of curl upstream.
+
+name: Update curl
+
+on:
+  schedule:
+    - cron: '0 12 * * 5'
+  workflow_dispatch:
+
+jobs:
+  update-submodule:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      - name: Update submodule to latest release
+        id: update
+        run: |
+          LATEST_TAG=$(gh release view --repo curl/curl --json tagName --jq .tagName)
+          cd curl-sys/curl
+          git fetch --tags
+          git checkout $LATEST_TAG
+          echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GH_PAT }}
+          branch: update-curl-to-${{ steps.update.outputs.tag }}
+          commit-message: "chore: update curl to ${{ steps.update.outputs.tag }}"
+          title: "Update curl to ${{ steps.update.outputs.tag }}"
+          body: |
+            Update the bundled curl submodule to version ${{ steps.update.outputs.tag }}.
+
+            Changelog: <https://curl.se/ch/${{ steps.update.outputs.tag }}.html>
+
+            This PR was created in an automated fashion. Additional changes may
+            be required to get the new version of curl to work with our
+            `build.rs` script.
+          labels: curl-update
