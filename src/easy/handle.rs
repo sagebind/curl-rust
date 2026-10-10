@@ -768,6 +768,16 @@ impl Easy {
         self.inner.netrc(netrc)
     }
 
+    /// Same as [`Easy2::netrc_file`](struct.Easy2.html#method.netrc_file)
+    pub fn netrc_file<P: AsRef<Path>>(&mut self, path: P) -> Result<(), Error> {
+        self.inner.netrc_file(path)
+    }
+
+    /// Same as [`Easy2::oauth2_bearer`](struct.Easy2.html#method.oauth2_bearer)
+    pub fn oauth2_bearer(&mut self, token: &str) -> Result<(), Error> {
+        self.inner.oauth2_bearer(token)
+    }
+
     // =========================================================================
     // HTTP Options
 

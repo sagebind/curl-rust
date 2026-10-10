@@ -1035,3 +1035,47 @@ fn test_timeout() {
             .unwrap()
     );
 }
+
+#[test]
+fn bearer_token() {
+    let s = Server::new();
+    s.receive(
+        "\
+         GET / HTTP/1.1\r\n\
+         Host: 127.0.0.1:$PORT\r\n\
+         Authorization: Bearer t0k\r\n\
+         Accept: */*\r\n\
+         \r\n",
+    );
+    s.send("HTTP/1.1 200 OK\r\n\r\n");
+
+    let mut handle = handle();
+    t!(handle.url(&s.url("/")));
+    t!(handle.oauth2_bearer("t0k"));
+    t!(handle.http_auth(curl::easy::Auth::new().bearer(true)));
+    t!(handle.perform());
+}
+
+#[test]
+fn netrc_file() {
+    let netrc = std::env::temp_dir().join(format!("curl-rust-netrc-{}", std::process::id()));
+    std::fs::write(&netrc, "machine 127.0.0.1 login nu password np\n").unwrap();
+
+    let s = Server::new();
+    s.receive(
+        "\
+         GET / HTTP/1.1\r\n\
+         Host: 127.0.0.1:$PORT\r\n\
+         Authorization: Basic bnU6bnA=\r\n\
+         Accept: */*\r\n\
+         \r\n",
+    );
+    s.send("HTTP/1.1 200 OK\r\n\r\n");
+
+    let mut handle = handle();
+    t!(handle.url(&s.url("/")));
+    t!(handle.netrc(curl::easy::NetRc::Required));
+    t!(handle.netrc_file(&netrc));
+    t!(handle.perform());
+    std::fs::remove_file(&netrc).unwrap();
+}

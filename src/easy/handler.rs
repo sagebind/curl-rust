@@ -1409,6 +1409,25 @@ impl<H> Easy2<H> {
         self.setopt_long(curl_sys::CURLOPT_NETRC, netrc as c_long)
     }
 
+    /// The file to read netrc credentials from, instead of `~/.netrc`.
+    ///
+    /// Only used when [`netrc`](Easy2::netrc) is not `NetRc::Ignored`. By
+    /// default this value is not set and corresponds to `CURLOPT_NETRC_FILE`.
+    pub fn netrc_file<P: AsRef<Path>>(&mut self, path: P) -> Result<(), Error> {
+        self.setopt_path(curl_sys::CURLOPT_NETRC_FILE, path.as_ref())
+    }
+
+    /// The OAuth 2.0 bearer token to authenticate with.
+    ///
+    /// For HTTP, enable [`Auth::bearer`] on [`http_auth`](Easy2::http_auth)
+    /// as well; libcurl then sends it as `Authorization: Bearer <token>`.
+    /// By default this value is not set and corresponds to
+    /// `CURLOPT_XOAUTH2_BEARER`.
+    pub fn oauth2_bearer(&mut self, token: &str) -> Result<(), Error> {
+        let token = CString::new(token)?;
+        self.setopt_str(curl_sys::CURLOPT_XOAUTH2_BEARER, &token)
+    }
+
     // =========================================================================
     // HTTP Options
 
@@ -3778,6 +3797,12 @@ impl Auth {
     /// this option to work, or build libcurl on Windows with SSPI support.
     pub fn ntlm(&mut self, on: bool) -> &mut Auth {
         self.flag(curl_sys::CURLAUTH_NTLM, on)
+    }
+
+    /// HTTP Bearer token authentication, with the token from
+    /// [`oauth2_bearer`](Easy2::oauth2_bearer).
+    pub fn bearer(&mut self, on: bool) -> &mut Auth {
+        self.flag(curl_sys::CURLAUTH_BEARER, on)
     }
 
     /// NTLM delegating to winbind helper.
