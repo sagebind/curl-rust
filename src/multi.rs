@@ -645,13 +645,8 @@ impl Multi {
     }
 
     fn timeout_i32(timeout: Duration) -> i32 {
-        let secs = timeout.as_secs();
-        if secs > (i32::MAX / 1000) as u64 {
-            // Duration too large, clamp at maximum value.
-            i32::MAX
-        } else {
-            secs as i32 * 1000 + timeout.subsec_nanos() as i32 / 1_000_000
-        }
+        // Duration too large, clamp at maximum value.
+        timeout.as_millis().min(i32::MAX as u128) as i32
     }
 
     /// Block until activity is detected or a timeout passes.
@@ -1416,6 +1411,21 @@ impl fmt::Debug for WaitFd {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::Duration;
 
     static_assertions::assert_not_impl_any!(Multi: Send, Sync);
+
+    #[test]
+    fn timeout_i32_clamps_at_max() {
+        assert_eq!(Multi::timeout_i32(Duration::from_millis(1500)), 1500);
+        assert_eq!(
+            Multi::timeout_i32(Duration::new(2_147_483, 647_999_999)),
+            i32::MAX
+        );
+        assert_eq!(
+            Multi::timeout_i32(Duration::new(2_147_483, 648_000_000)),
+            i32::MAX
+        );
+        assert_eq!(Multi::timeout_i32(Duration::MAX), i32::MAX);
+    }
 }
