@@ -476,6 +476,12 @@ fn main() {
                 // poll() on various versions of macOS are janky, so only use it
                 // on non-macOS unix-likes. This matches the official default
                 // build configuration as well.
+                //
+                // curl 8.x gates select.c on HAVE_POLL (HAVE_POLL_FINE is the
+                // pre-8.x name). Without it libcurl silently falls back to
+                // select(), and any socket with fd >= FD_SETSIZE (1024) fails
+                // with CURLE_COULDNT_CONNECT right after the TCP handshake.
+                .define("HAVE_POLL", None)
                 .define("HAVE_POLL_FINE", None);
         }
 
