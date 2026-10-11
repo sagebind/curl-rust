@@ -851,6 +851,11 @@ impl Easy {
         self.inner.proxy_headers(list)
     }
 
+    /// Same as [`Easy2::proxy_headers_separate`](struct.Easy2.html#method.proxy_headers_separate)
+    pub fn proxy_headers_separate(&mut self, separate: bool) -> Result<(), Error> {
+        self.inner.proxy_headers_separate(separate)
+    }
+
     /// Same as [`Easy2::cookie`](struct.Easy2.html#method.cookie)
     pub fn cookie(&mut self, cookie: &str) -> Result<(), Error> {
         self.inner.cookie(cookie)

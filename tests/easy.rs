@@ -1035,3 +1035,37 @@ fn test_timeout() {
             .unwrap()
     );
 }
+
+#[test]
+fn proxy_headers_need_separate_mode() {
+    // the server plays a plain-http proxy, which gets both lists once the
+    // headers are kept separate and only the server list before
+    for (separate, expect_proxy_header) in [(false, false), (true, true)] {
+        let s = Server::new();
+        let mut expected = String::from(
+            "\
+             GET http://origin.invalid/ HTTP/1.1\r\n\
+             Host: origin.invalid\r\n\
+             Accept: */*\r\n\
+             X-Server: 1\r\n",
+        );
+        if expect_proxy_header {
+            expected.push_str("X-Proxy: 1\r\n");
+        }
+        expected.push_str("\r\n");
+        s.receive(&expected);
+        s.send("HTTP/1.1 200 OK\r\n\r\n");
+
+        let mut handle = handle();
+        t!(handle.url("http://origin.invalid/"));
+        t!(handle.proxy(&s.url("")));
+        let mut server_headers = List::new();
+        t!(server_headers.append("X-Server: 1"));
+        t!(handle.http_headers(server_headers));
+        let mut proxy_headers = List::new();
+        t!(proxy_headers.append("X-Proxy: 1"));
+        t!(handle.proxy_headers(proxy_headers));
+        t!(handle.proxy_headers_separate(separate));
+        t!(handle.perform());
+    }
+}

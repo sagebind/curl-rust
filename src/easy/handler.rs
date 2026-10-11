@@ -1598,7 +1598,9 @@ impl<H> Easy2<H> {
 
     /// Add some headers to send to the HTTP proxy.
     ///
-    /// This function is essentially the same as `http_headers`.
+    /// This function is essentially the same as `http_headers`, but libcurl
+    /// only uses the list once [`proxy_headers_separate`](Easy2::proxy_headers_separate)
+    /// is on.
     ///
     /// By default this option is not set and corresponds to
     /// `CURLOPT_PROXYHEADER`
@@ -1606,6 +1608,26 @@ impl<H> Easy2<H> {
         let ptr = list::raw(&list);
         self.inner.proxy_header_list = Some(list);
         self.setopt_ptr(curl_sys::CURLOPT_PROXYHEADER, ptr as *const _)
+    }
+
+    /// Keep the headers for the proxy apart from the headers for the server.
+    ///
+    /// Off, libcurl's default, the `http_headers` list is also sent to the
+    /// proxy in a `CONNECT` request, which hands an `Authorization` or
+    /// `Cookie` header meant for the server to the proxy, and the
+    /// `proxy_headers` list is ignored. On, `http_headers` go only to the
+    /// server and `proxy_headers` only to the proxy; a request that is not
+    /// a `CONNECT` (plain `http://` through a proxy) gets both lists.
+    ///
+    /// By default this option is `false` and corresponds to
+    /// `CURLOPT_HEADEROPT` with `CURLHEADER_SEPARATE`.
+    pub fn proxy_headers_separate(&mut self, separate: bool) -> Result<(), Error> {
+        let mode = if separate {
+            curl_sys::CURLHEADER_SEPARATE
+        } else {
+            curl_sys::CURLHEADER_UNIFIED
+        };
+        self.setopt_long(curl_sys::CURLOPT_HEADEROPT, mode)
     }
 
     /// Set the contents of the HTTP Cookie header.
