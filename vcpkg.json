@@ -1,0 +1,13 @@
+{
+  "builtin-baseline": "960d40ee7351cca3fc648e9d38993b59f01dfd2b",
+  "dependencies": [
+    "openssl"
+  ],
+  "overrides": [
+    {
+      "name": "openssl",
+      "version": "3.6.4",
+      "port-version": 1
+    }
+  ]
+}

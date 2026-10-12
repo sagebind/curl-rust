@@ -56,6 +56,13 @@
 #![deny(missing_docs, missing_debug_implementations)]
 #![doc(html_root_url = "https://docs.rs/curl/0.4")]
 
+// `ssl` (Schannel on Windows) and `windows-static-ssl` (OpenSSL) are mutually
+// exclusive TLS backends for libcurl.
+// Gated on `not(doc)` so that `cargo doc --all-features` still generates a
+// union of feature-conditional items.
+#[cfg(all(feature = "ssl", feature = "windows-static-ssl", not(doc)))]
+compile_error!("`ssl` and `windows-static-ssl` are mutually exclusive TLS backends");
+
 use std::ffi::CStr;
 use std::str;
 use std::sync::Once;
