@@ -181,4 +181,14 @@ mod tests {
     fn is_initialized_before_main() {
         assert!(INITIALIZED.load(std::sync::atomic::Ordering::SeqCst));
     }
+
+    /// Regression test for the libcurl 8.20 `CURL_ENABLE_NTLM` opt-in flip.
+    #[cfg(feature = "ntlm")]
+    #[test]
+    fn is_ntlm_support_activated() {
+        assert!(
+            Version::get().feature_ntlm(),
+            "`CURL_ENABLE_NTLM` may not be defined"
+        );
+    }
 }
