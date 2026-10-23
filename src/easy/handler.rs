@@ -376,8 +376,50 @@ pub fn ssl_ctx(cx: *mut c_void) -> Result<(), Error> {
 /// println!("{}", String::from_utf8_lossy(&contents.0));
 /// ```
 pub struct Easy2<H> {
-    inner: Box<Inner<H>>,
+    inner: InnerBox<H>,
 }
+
+// Keep the callback target behind an owning raw pointer. Callback userdata can
+// outlive temporary references to Easy2 and must remain valid when Easy2 moves.
+struct InnerBox<H> {
+    ptr: *mut Inner<H>,
+}
+
+impl<H> InnerBox<H> {
+    fn new(inner: Inner<H>) -> Self {
+        Self {
+            ptr: Box::into_raw(Box::new(inner)),
+        }
+    }
+
+    fn as_ptr(&self) -> *mut Inner<H> {
+        self.ptr
+    }
+}
+
+impl<H> std::ops::Deref for InnerBox<H> {
+    type Target = Inner<H>;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*self.ptr }
+    }
+}
+
+impl<H> std::ops::DerefMut for InnerBox<H> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { &mut *self.ptr }
+    }
+}
+
+impl<H> Drop for InnerBox<H> {
+    fn drop(&mut self) {
+        unsafe {
+            drop(Box::from_raw(self.ptr));
+        }
+    }
+}
+
+unsafe impl<H: Send> Send for InnerBox<H> {}
 
 struct Inner<H> {
     handle: *mut curl_sys::CURL,
@@ -591,7 +633,7 @@ impl<H: Handler> Easy2<H> {
             let handle = curl_sys::curl_easy_init();
             assert!(!handle.is_null());
             let mut ret = Easy2 {
-                inner: Box::new(Inner {
+                inner: InnerBox::new(Inner {
                     handle,
                     header_list: None,
                     resolve_list: None,
@@ -628,7 +670,7 @@ impl<H: Handler> Easy2<H> {
         let _ = self.signal(false);
         self.ssl_configure();
 
-        let ptr = &*self.inner as *const _ as *const _;
+        let ptr = self.inner.as_ptr() as *const _;
 
         let cb: extern "C" fn(*mut c_char, size_t, size_t, *mut c_void) -> size_t = header_cb::<H>;
         self.setopt_ptr(curl_sys::CURLOPT_HEADERFUNCTION, cb as *const _)
@@ -3545,6 +3587,51 @@ impl<H> Drop for Easy2<H> {
         unsafe {
             curl_sys::curl_easy_cleanup(self.inner.handle);
         }
+    }
+}
+
+#[cfg(test)]
+mod callback_data_tests {
+    use super::*;
+
+    struct Collector(Vec<u8>);
+
+    impl Handler for Collector {
+        fn write(&mut self, data: &[u8]) -> Result<usize, WriteError> {
+            self.0.extend_from_slice(data);
+            Ok(data.len())
+        }
+    }
+
+    fn move_owner<H>(owner: InnerBox<H>) -> InnerBox<H> {
+        owner
+    }
+
+    #[test]
+    fn callback_data_survives_moving_its_owner() {
+        let owner = InnerBox::new(Inner {
+            handle: ptr::null_mut(),
+            header_list: None,
+            resolve_list: None,
+            connect_to_list: None,
+            proxy_header_list: None,
+            form: None,
+            error_buf: Box::new(UnsafeCell::new([0; curl_sys::CURL_ERROR_SIZE])),
+            handler: Collector(Vec::new()),
+        });
+        let callback_data = owner.as_ptr() as *mut c_void;
+        let owner = move_owner(owner);
+        let payload = b"synthetic response";
+
+        let written = write_cb::<Collector>(
+            payload.as_ptr() as *mut c_char,
+            1,
+            payload.len(),
+            callback_data,
+        );
+
+        assert_eq!(written, payload.len());
+        assert_eq!(owner.handler.0, payload);
     }
 }
 
